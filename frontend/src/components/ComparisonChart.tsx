@@ -44,32 +44,37 @@ export const ComparisonChart = ({
   isLoading,
   isFetching,
   error,
-}: ComparisonChartProps) => (
-  <WidgetCard
-    title="Automated vs. Manual Logins"
-    subtitle="Per exam center"
-    isFetching={isFetching}
-    status={
-      error ? (
-        <span className="text-red-400">Unable to refresh data. Showing last values.</span>
-      ) : null
-    }
-  >
-    {isLoading ? (
-      <div className="flex h-64 flex-col justify-between gap-4">
-        {[...Array(4)].map((_, idx) => (
-          <div key={idx} className="h-10 w-full rounded-2xl bg-[rgba(148,163,184,0.3)]" />
-        ))}
-      </div>
-    ) : (
-      <div className="h-64 w-full">
-        <ResponsiveContainer>
-          <BarChart
-            data={data}
-            layout="vertical"
-            margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
-            barSize={18}
-          >
+}: ComparisonChartProps) => {
+  const sortedData = [...(data || [])].sort((a, b) => 
+    a.centreId.localeCompare(b.centreId)
+  );
+
+  return (
+    <WidgetCard
+      title="Face authentication vs Manual Admissions"
+      subtitle="Per exam center"
+      isFetching={isFetching}
+      status={
+        error ? (
+          <span className="text-red-400">Unable to refresh data. Showing last values.</span>
+        ) : null
+      }
+    >
+      {isLoading ? (
+        <div className="flex h-64 flex-col justify-between gap-4">
+          {[...Array(4)].map((_, idx) => (
+            <div key={idx} className="h-10 w-full rounded-2xl bg-[rgba(148,163,184,0.3)]" />
+          ))}
+        </div>
+      ) : (
+        <div className="h-64 w-full">
+          <ResponsiveContainer>
+            <BarChart
+              data={sortedData}
+              layout="vertical"
+              margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+              barSize={18}
+            >
             <CartesianGrid horizontal={false} stroke="var(--border-color)" />
             <XAxis
               type="number"
@@ -92,17 +97,22 @@ export const ComparisonChart = ({
               fill="#1f4ed8"
               radius={[0, 8, 8, 0]}
               animationDuration={400}
+              cursor="default"
+              onClick={() => {}}
             />
             <Bar
               dataKey="manual"
               fill="#97b0ff"
               radius={[0, 8, 8, 0]}
               animationDuration={400}
+              cursor="default"
+              onClick={() => {}}
             />
           </BarChart>
         </ResponsiveContainer>
       </div>
     )}
   </WidgetCard>
-);
+  );
+};
 

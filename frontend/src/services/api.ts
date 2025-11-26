@@ -36,14 +36,51 @@ const applyFilters = (records: ApiRecord[], filters?: DashboardFilters) =>
     return true;
   });
 
+export const formatExamCode = (code: string): string => {
+  // Add prefixes based on exam code patterns
+  if (code.startsWith('CMS') || code.startsWith('ESE')) {
+    return `PT ${code}`;
+  }
+  if (code.includes('IFS') && code.includes('Mains')) {
+    return `Mains ${code}`;
+  }
+  // Check if it's a PT exam (starts with common PT patterns)
+  if (code.match(/^(CMS|ESE|NDA|CDS)/i)) {
+    return `PT ${code}`;
+  }
+  // Check if it's a Mains exam
+  if (code.match(/IFS/i) && !code.startsWith('PT')) {
+    return `Mains ${code}`;
+  }
+  return code;
+};
+
 const buildFilterOptions = (records: ApiRecord[]) => {
   const unique = <T extends string>(values: T[], label: string) => [
     label,
     ...Array.from(new Set(values)).sort(),
   ];
 
+  // Create exam code to dates mapping for filtering
+  const examCodeToDates = new Map<string, Set<string>>();
+  records.forEach((record) => {
+    const code = record.upsc_exam_code;
+    if (!examCodeToDates.has(code)) {
+      examCodeToDates.set(code, new Set());
+    }
+    examCodeToDates.get(code)!.add(record.exam_date);
+  });
+
+  // Format exam codes with prefixes
+  const rawExamCodes = Array.from(new Set(records.map((item) => item.upsc_exam_code))).sort();
+  const formattedExamCodes = rawExamCodes.map((code) => formatExamCode(code));
+  const examCodeMap = new Map<string, string>(); // formatted -> raw
+  rawExamCodes.forEach((raw, idx) => {
+    examCodeMap.set(formattedExamCodes[idx], raw);
+  });
+
   return {
-    examCodes: unique(records.map((item) => item.upsc_exam_code), 'All Exam Codes'),
+    examCodes: ['All Exam Codes', ...formattedExamCodes],
     examDates: unique(records.map((item) => item.exam_date), 'All Dates'),
     sessions: unique(records.map((item) => item.exam_session), 'All Sessions'),
     centreIds: unique(records.map((item) => item.centre_id), 'All Centres'),
@@ -52,6 +89,10 @@ const buildFilterOptions = (records: ApiRecord[]) => {
       records.map((item) => item.verification_mode),
       'All Modes',
     ),
+    // Store mappings for filtering
+    _examCodeMap: examCodeMap,
+    _examCodeToDates: examCodeToDates,
+    _rawRecords: records,
   };
 };
 
@@ -144,7 +185,19 @@ const toDashboardData = (
     return createEmptyDashboardData(undefined, lastUpdated);
   }
 
-  const filtered = applyFilters(records, filters);
+  const filterOptions = buildFilterOptions(records);
+  const examCodeMap = filterOptions._examCodeMap;
+  
+  // Convert formatted exam code to raw code if needed
+  let processedFilters = filters;
+  if (filters?.examCode && filters.examCode !== 'All Exam Codes' && examCodeMap) {
+    const rawCode = examCodeMap.get(filters.examCode);
+    if (rawCode) {
+      processedFilters = { ...filters, examCode: rawCode };
+    }
+  }
+  
+  const filtered = applyFilters(records, processedFilters);
   const totalAdmits = filtered.reduce((sum, row) => sum + row.admit_count, 0);
   const automatedLogins = filtered
     .filter((row) => row.verification_mode === 'A')
@@ -221,7 +274,7 @@ const toDashboardData = (
     studentsPerCourse: toDistribution(courseTotals),
     studentsPerSession: toDistribution(sessionTotals),
     table,
-    filters: buildFilterOptions(records),
+    filters: filterOptions,
     lastUpdated: lastUpdated ?? new Date().toISOString(),
   };
 };

@@ -25,11 +25,6 @@ export const StatCard = memo(
         {highlight && (
           <p className="mt-1 text-xs font-medium text-muted md:text-sm">{highlight}</p>
         )}
-        {isFetching && !isLoading && (
-          <span className="absolute right-6 top-6 text-xs font-medium text-muted">
-            Updating…
-          </span>
-        )}
       </article>
     );
   },

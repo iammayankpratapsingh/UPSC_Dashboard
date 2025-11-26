@@ -19,7 +19,7 @@ export const DonutChart = ({ data, isLoading, isFetching, error }: DonutChartPro
 
   return (
     <WidgetCard
-      title="Logins by Type"
+      title="Admitted candidates by Type"
       subtitle="Share of all logins"
       isFetching={isFetching}
       status={
@@ -37,16 +37,19 @@ export const DonutChart = ({ data, isLoading, isFetching, error }: DonutChartPro
           <div className="h-36 w-36 animate-pulse rounded-full border-8 border-[color:rgba(148,163,184,0.35)]" />
         </div>
       ) : (
-        <div className="flex h-64 flex-col items-center justify-center gap-6 md:flex-row">
-          <div className="h-48 w-48">
-            <ResponsiveContainer>
+        <div className="flex min-h-64 flex-col items-center justify-center gap-6 md:flex-row md:h-64">
+          <div className="relative h-48 w-48 min-h-[192px] min-w-[192px] max-w-full md:h-48 md:w-48">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
-                  innerRadius={70}
-                  outerRadius={90}
+                  innerRadius="60%"
+                  outerRadius="80%"
                   paddingAngle={4}
                   dataKey="value"
+                  activeIndex={undefined}
+                  activeShape={null}
+                  onClick={() => {}}
                 >
                   {chartData.map((entry, index) => (
                     <Cell key={entry.name} fill={COLORS[index]} />

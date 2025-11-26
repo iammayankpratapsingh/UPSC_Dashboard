@@ -25,21 +25,11 @@ export const WidgetCard = ({
       {action}
     </div>
 
-    <div
-      className={`mt-4 transition-opacity duration-300 ${
-        isFetching ? 'opacity-70' : 'opacity-100'
-      }`}
-    >
+    <div className="mt-4">
       {children}
     </div>
 
     {status && <div className="mt-3 text-xs text-muted">{status}</div>}
-
-    {isFetching && (
-      <span className="absolute right-6 top-6 text-xs font-medium text-muted">
-        Updating…
-      </span>
-    )}
   </section>
 );
 

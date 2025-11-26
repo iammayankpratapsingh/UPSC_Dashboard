@@ -133,7 +133,14 @@ export const DistributionChart = ({
                 </>
               )}
               <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="value" fill="#1f4ed8" radius={[4, 4, 0, 0]} animationDuration={400} />
+              <Bar 
+                dataKey="value" 
+                fill="#1f4ed8" 
+                radius={[4, 4, 0, 0]} 
+                animationDuration={400}
+                cursor="default"
+                onClick={() => {}}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -37,6 +37,14 @@ export interface FilterOptions {
   centreIds: string[];
   subCentreIds: string[];
   verificationModes: string[];
+  // Internal mappings for filtering (not part of public API)
+  _examCodeMap?: Map<string, string>; // formatted -> raw exam code
+  _examCodeToDates?: Map<string, Set<string>>; // raw exam code -> dates
+  _rawRecords?: Array<{
+    upsc_exam_code: string;
+    exam_date: string;
+    sub_centre_id: string;
+  }>;
 }
 
 export interface DashboardFilters {

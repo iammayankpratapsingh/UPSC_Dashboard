@@ -10,6 +10,7 @@ import {
 import { useLiveData } from './hooks/useLiveData';
 import type { DashboardFilters } from './types';
 import { useTheme } from './context';
+import { HiMoon, HiSun } from 'react-icons/hi2';
 
 function App() {
   const [pendingFilters, setPendingFilters] = useState<DashboardFilters>({});
@@ -46,15 +47,15 @@ function App() {
   const summaryCards = useMemo(
     () => [
       {
-        label: 'Total Admits',
+        label: 'Total Admitted candidates',
         value: data?.summary.totalAdmits ?? 0,
       },
       {
-        label: 'Automated Logins',
+        label: 'Face authenticated candidates',
         value: data?.summary.automatedLogins ?? 0,
       },
       {
-        label: 'Manual Logins',
+        label: 'Manually admitted candidates',
         value: data?.summary.manualLogins ?? 0,
       },
     ],
@@ -80,7 +81,7 @@ function App() {
 
   return (
     <div className="bg-app px-3 py-4 text-primary transition-colors md:px-8 lg:px-12">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
             UPSC Login Dashboard
@@ -89,9 +90,15 @@ function App() {
         <button
           type="button"
           onClick={toggleTheme}
-          className="inline-flex items-center gap-2 rounded-full border border-neutral bg-surface px-4 py-2 text-sm font-semibold text-primary transition hover:bg-surface-muted"
+          className="inline-flex items-center justify-center rounded-full border border-neutral bg-surface p-2.5 text-primary transition hover:bg-surface-muted"
+          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
         >
-          {theme === 'light' ? 'Switch to Dark' : 'Switch to Light'}
+          {theme === 'light' ? (
+            <HiMoon className="h-5 w-5" />
+          ) : (
+            <HiSun className="h-5 w-5" />
+          )}
         </button>
       </header>
 
@@ -145,7 +152,7 @@ function App() {
           error={error as Error | null}
         />
         <DistributionChart
-          title="Students per Course"
+          title="Number of Face authentications per Exam"
           subtitle="Most active exam codes"
           data={data?.studentsPerCourse ?? []}
           maxItems={6}
@@ -154,7 +161,7 @@ function App() {
           error={error as Error | null}
         />
         <DistributionChart
-          title="Students per Session"
+          title="Face Authentications Session wise"
           subtitle="Shift-wise admit totals"
           data={data?.studentsPerSession ?? []}
           maxItems={4}
