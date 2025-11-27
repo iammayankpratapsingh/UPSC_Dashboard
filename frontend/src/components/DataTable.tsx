@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { TableRow } from '../types';
 import { WidgetCard } from './WidgetCard';
 import { formatExamCode } from '../services/api';
@@ -88,21 +89,89 @@ const compareStrings = (a: string, b: string): number => {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 };
 
+type SortColumn =
+  | 'examDate'
+  | 'examName'
+  | 'session'
+  | 'city'
+  | 'subCentre'
+  | 'verificationMode'
+  | 'admitCount';
+type SortDirection = 'asc' | 'desc';
+
 export const DataTable = ({ rows, selectedExamCode, isLoading, error }: DataTableProps) => {
-  const sortedRows = [...rows].sort((a, b) => {
-    // Sort by date (latest first)
-    const dateA = parseDate(a.examDate);
-    const dateB = parseDate(b.examDate);
-    if (dateB !== dateA) {
-      return dateB - dateA;
-    }
-    // Then by center code
-    if (a.centreId !== b.centreId) {
-      return compareStrings(a.centreId, b.centreId);
-    }
-    // Then by sub center
-    return compareStrings(a.subCentreId, b.subCentreId);
+  const [sortConfig, setSortConfig] = useState<{ column: SortColumn; direction: SortDirection }>({
+    column: 'examDate',
+    direction: 'desc',
   });
+
+  const sortedRows = useMemo(() => {
+    const directionMultiplier = sortConfig.direction === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      if (sortConfig.column === 'examName') {
+        const nameA = formatExamCode(a.examCode);
+        const nameB = formatExamCode(b.examCode);
+        if (nameA !== nameB) {
+          return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' }) * directionMultiplier;
+        }
+      } else if (sortConfig.column === 'session') {
+        if (a.examSession !== b.examSession) {
+          return a.examSession.localeCompare(b.examSession, undefined, {
+            sensitivity: 'base',
+            numeric: true,
+          }) * directionMultiplier;
+        }
+      } else if (sortConfig.column === 'city') {
+        const cityA = formatCityDisplay(a.centreId);
+        const cityB = formatCityDisplay(b.centreId);
+        if (cityA !== cityB) {
+          return cityA.localeCompare(cityB, undefined, { sensitivity: 'base' }) * directionMultiplier;
+        }
+      } else if (sortConfig.column === 'subCentre') {
+        if (a.subCentreId !== b.subCentreId) {
+          return compareStrings(a.subCentreId, b.subCentreId) * directionMultiplier;
+        }
+      } else if (sortConfig.column === 'verificationMode') {
+        const modeA = a.verificationMode === 'A' ? 'Automated' : 'Manual';
+        const modeB = b.verificationMode === 'A' ? 'Automated' : 'Manual';
+        if (modeA !== modeB) {
+          return modeA.localeCompare(modeB, undefined, { sensitivity: 'base' }) * directionMultiplier;
+        }
+      } else if (sortConfig.column === 'admitCount') {
+        if (a.admitCount !== b.admitCount) {
+          return (a.admitCount - b.admitCount) * directionMultiplier;
+        }
+      } else {
+        const dateA = parseDate(a.examDate);
+        const dateB = parseDate(b.examDate);
+        if (dateA !== dateB) {
+          return (dateA - dateB) * directionMultiplier;
+        }
+      }
+      if (a.centreId !== b.centreId) {
+        return compareStrings(a.centreId, b.centreId);
+      }
+      return compareStrings(a.subCentreId, b.subCentreId);
+    });
+  }, [rows, sortConfig]);
+
+  const toggleSort = (column: SortColumn) => {
+    setSortConfig((prev) => {
+      if (prev.column === column) {
+        return {
+          column,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc',
+        };
+      }
+      return {
+        column,
+        direction: column === 'examDate' ? 'desc' : 'asc',
+      };
+    });
+  };
+
+  const getSortIndicator = (column: SortColumn) =>
+    sortConfig.column === column ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕';
 
   const normalizedExamCode = selectedExamCode?.trim();
   const shouldFilter =
@@ -128,15 +197,134 @@ export const DataTable = ({ rows, selectedExamCode, isLoading, error }: DataTabl
       <div className="overflow-x-auto">
         <div className="custom-scroll max-h-[420px] overflow-y-auto pr-2">
           <table className="min-w-full text-left text-sm text-primary">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface">
             <tr className="text-xs uppercase text-muted">
-              <th className="pb-4 pr-4 font-semibold">Exam Date</th>
-              <th className="pb-4 pr-4 font-semibold">Name of the Examination</th>
-              <th className="pb-4 pr-4 font-semibold">Session</th>
-              <th className="pb-4 pr-4 font-semibold">City</th>
-              <th className="pb-4 pr-4 font-semibold">Sub Centre</th>
-              <th className="pb-4 pr-4 font-semibold">Verification Mode</th>
-              <th className="pb-4 font-semibold">Admit Count</th>
+              <th className="pb-4 pr-4 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => toggleSort('examDate')}
+                  className="inline-flex items-center gap-1 text-primary transition hover:text-primary/80"
+                >
+                  Exam Date
+                  <span aria-hidden="true" className="text-xs">
+                    {getSortIndicator('examDate')}
+                  </span>
+                  <span className="sr-only">
+                    Sort exam date{' '}
+                    {sortConfig.column === 'examDate' && sortConfig.direction === 'asc'
+                      ? 'descending'
+                      : 'ascending'}
+                  </span>
+                </button>
+              </th>
+              <th className="pb-4 pr-4 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => toggleSort('examName')}
+                  className="inline-flex items-center gap-1 text-primary transition hover:text-primary/80"
+                >
+                  Name of the Examination
+                  <span aria-hidden="true" className="text-xs">
+                    {getSortIndicator('examName')}
+                  </span>
+                  <span className="sr-only">
+                    Sort examination name{' '}
+                    {sortConfig.column === 'examName' && sortConfig.direction === 'asc'
+                      ? 'descending'
+                      : 'ascending'}
+                  </span>
+                </button>
+              </th>
+              <th className="pb-4 pr-4 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => toggleSort('session')}
+                  className="inline-flex items-center gap-1 text-primary transition hover:text-primary/80"
+                >
+                  Session
+                  <span aria-hidden="true" className="text-xs">
+                    {getSortIndicator('session')}
+                  </span>
+                  <span className="sr-only">
+                    Sort session{' '}
+                    {sortConfig.column === 'session' && sortConfig.direction === 'asc'
+                      ? 'descending'
+                      : 'ascending'}
+                  </span>
+                </button>
+              </th>
+              <th className="pb-4 pr-4 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => toggleSort('city')}
+                  className="inline-flex items-center gap-1 text-primary transition hover:text-primary/80"
+                >
+                  City
+                  <span aria-hidden="true" className="text-xs">
+                    {getSortIndicator('city')}
+                  </span>
+                  <span className="sr-only">
+                    Sort city{' '}
+                    {sortConfig.column === 'city' && sortConfig.direction === 'asc'
+                      ? 'descending'
+                      : 'ascending'}
+                  </span>
+                </button>
+              </th>
+              <th className="pb-4 pr-4 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => toggleSort('subCentre')}
+                  className="inline-flex items-center gap-1 text-primary transition hover:text-primary/80"
+                >
+                  Sub Centre
+                  <span aria-hidden="true" className="text-xs">
+                    {getSortIndicator('subCentre')}
+                  </span>
+                  <span className="sr-only">
+                    Sort sub centre{' '}
+                    {sortConfig.column === 'subCentre' && sortConfig.direction === 'asc'
+                      ? 'descending'
+                      : 'ascending'}
+                  </span>
+                </button>
+              </th>
+              <th className="pb-4 pr-4 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => toggleSort('verificationMode')}
+                  className="inline-flex items-center gap-1 text-primary transition hover:text-primary/80"
+                >
+                  Verification Mode
+                  <span aria-hidden="true" className="text-xs">
+                    {getSortIndicator('verificationMode')}
+                  </span>
+                  <span className="sr-only">
+                    Sort verification mode{' '}
+                    {sortConfig.column === 'verificationMode' && sortConfig.direction === 'asc'
+                      ? 'descending'
+                      : 'ascending'}
+                  </span>
+                </button>
+              </th>
+              <th className="pb-4 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => toggleSort('admitCount')}
+                  className="inline-flex items-center gap-1 text-primary transition hover:text-primary/80"
+                >
+                  Admit Count
+                  <span aria-hidden="true" className="text-xs">
+                    {getSortIndicator('admitCount')}
+                  </span>
+                  <span className="sr-only">
+                    Sort admit count{' '}
+                    {sortConfig.column === 'admitCount' && sortConfig.direction === 'asc'
+                      ? 'descending'
+                      : 'ascending'}
+                  </span>
+                </button>
+              </th>
               <th className="pb-4 pl-2 text-right font-semibold">Download</th>
             </tr>
           </thead>
